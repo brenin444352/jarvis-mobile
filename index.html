@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f0f10">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>JARVIS</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<script>if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js");}</script>
+<style>
+:root{--bg:#0f0f10;--side:#1b1b1d;--card:#1e1e21;--user:#2b2b2f;--borda:#2f2f35;--txt:#ececf1;--mut:#9b9ba5;--azul:#4f7cff}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overflow:hidden}
+#app{display:flex;flex-direction:column;height:100%}
+.topo{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--borda)}
+.topo h1{flex:1;margin:0;font-size:16px;font-weight:600;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ib{background:transparent;border:0;color:var(--txt);width:40px;height:40px;border-radius:50%;font-size:19px;flex-shrink:0}
+.ib:active{background:#2a2a2f}
+#tela{flex:1;overflow-y:auto;display:flex;flex-direction:column;min-height:0}
+.vista{display:none;flex:1;flex-direction:column}
+.vista.ativa{display:flex}
+#chat{flex:1;overflow-y:auto;padding:14px 12px;display:flex;flex-direction:column;gap:12px}
+.msg{max-width:88%;padding:10px 14px;border-radius:18px;line-height:1.5;word-wrap:break-word;font-size:15px}
+.msg.user{align-self:flex-end;background:var(--user);white-space:pre-wrap}
+.msg.jarvis{align-self:flex-start;padding:4px 2px;max-width:100%}
+.msg img{max-width:100%;border-radius:14px;display:block;margin-top:4px}
+.acoes{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.chip{background:#26262b;border:1px solid var(--borda);color:var(--txt);border-radius:16px;padding:8px 12px;font:inherit;font-size:13px;text-align:left}
+.vazio{margin:auto;text-align:center;padding:20px 8px;width:100%}
+.vazio h2{font-size:22px;font-weight:600;margin:0 0 16px}
+.sugs{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.digitando span{display:inline-block;width:7px;height:7px;margin:0 2px;border-radius:50%;background:var(--mut);animation:p 1s infinite}
+.digitando span:nth-child(2){animation-delay:.15s}.digitando span:nth-child(3){animation-delay:.3s}
+@keyframes p{0%,100%{opacity:.25}50%{opacity:1}}
+footer{padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));display:flex;gap:6px;align-items:flex-end}
+.caixaTxt{flex:1;background:#26262b;border:1px solid var(--borda);border-radius:22px;padding:10px 14px;display:flex;align-items:flex-end}
+textarea{flex:1;background:transparent;border:0;color:var(--txt);resize:none;font:inherit;font-size:15px;max-height:140px;min-height:24px;outline:none}
+.envio{background:var(--txt);color:#000;border:0;width:40px;height:40px;border-radius:50%;font-size:18px;flex-shrink:0}
+.envio:disabled{opacity:.3}
+.lista{display:flex;flex-direction:column;gap:6px;padding:10px 12px}
+.item{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--card);border-radius:12px;padding:12px}
+.item .t{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:none;border:0;color:var(--txt);text-align:left;font:inherit;padding:0}
+.item small{color:var(--mut);display:block;font-size:12px}
+.grade{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px}
+.grade figure{margin:0;background:var(--card);border-radius:14px;overflow:hidden}
+.grade img{width:100%;display:block;aspect-ratio:1/1;object-fit:cover}
+.grade figcaption{font-size:12px;color:var(--mut);padding:8px;max-height:3.6em;overflow:hidden}
+.vazioImg{color:var(--mut);text-align:center;padding:40px 20px;font-size:14px;line-height:1.6}
+#menu{position:fixed;inset:0;display:flex;z-index:20}
+#menu[hidden]{display:none}
+#menuFundo{position:absolute;inset:0;background:rgba(0,0,0,.55)}
+#side{position:relative;width:min(82vw,320px);height:100%;background:var(--side);display:flex;flex-direction:column;padding:14px 10px;gap:4px;overflow-y:auto}
+.lupa{background:#26262b;border:1px solid var(--borda);color:var(--txt);border-radius:12px;padding:10px 12px;font:inherit;width:100%;margin-bottom:6px}
+.nav{display:flex;align-items:center;gap:12px;background:transparent;border:0;color:var(--txt);padding:11px 10px;border-radius:10px;font:inherit;font-size:15px;text-align:left;width:100%}
+.nav:active{background:#2a2a2f}
+.nav[disabled]{color:#6c6c74}
+.rotulo{color:var(--mut);font-size:12px;padding:14px 10px 4px}
+.conv{background:transparent;border:0;color:var(--txt);text-align:left;padding:9px 10px;border-radius:10px;font:inherit;font-size:14px;width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.conv:active{background:#2a2a2f}
+.botaoAzul{background:var(--azul);color:#fff;border:0;border-radius:24px;padding:12px 16px;font:inherit;font-weight:600;width:100%;margin-bottom:6px}
+.rodapeSide{margin-top:auto;display:flex;align-items:center;gap:10px;padding-top:12px;border-top:1px solid var(--borda)}
+.avatar{width:38px;height:38px;border-radius:50%;background:#1a8f6a;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;flex-shrink:0}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;padding:16px;z-index:30}
+.modal[hidden]{display:none}
+.caixa{background:var(--card);border:1px solid var(--borda);border-radius:18px;padding:20px;width:min(94vw,420px);display:flex;flex-direction:column;gap:12px}
+.caixa h2{margin:0;font-size:18px}
+.caixa label{display:flex;flex-direction:column;gap:6px;font-size:14px;color:var(--mut)}
+.caixa label.linha{flex-direction:row;align-items:center;gap:8px;color:var(--txt)}
+.caixa input[type=password],.caixa input[type=text]{background:#111;border:1px solid var(--borda);color:var(--txt);border-radius:10px;padding:10px;font:inherit;color-scheme:dark}
+.btn{background:var(--azul);color:#fff;border:0;border-radius:10px;padding:10px 14px;font:inherit;font-weight:600}
+.btn.sec{background:transparent;border:1px solid var(--borda);color:var(--txt)}
+.btn.perigo{background:transparent;border:1px solid #6b2b2b;color:#ff8a8a}
+.aviso{color:var(--mut);font-size:12px;line-height:1.5;margin:0}
+.linhaBotoes{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="topo">
+    <button class="ib" id="abrirMenu" aria-label="Menu">☰</button>
+    <h1 id="tituloTopo">JARVIS</h1>
+    <button class="ib" id="novaTopo" aria-label="Nova conversa">＋</button>
+  </header>
+  <main id="tela">
+    <section class="vista ativa" id="vChat"><div id="chat"></div></section>
+    <section class="vista" id="vImagens"><div class="grade" id="grade"></div><p class="vazioImg" id="vazioImg" hidden>Ainda não criei imagens. Peça uma no chat, por exemplo: "gera uma imagem de um gato azul".</p></section>
+    <section class="vista" id="vBiblio"><div class="lista" id="listaBiblio"></div></section>
+    <section class="vista" id="vExplorar"><div class="lista" id="listaExplorar"></div></section>
+  </main>
+  <footer>
+    <div class="caixaTxt"><textarea id="txt" rows="1" placeholder="Pergunte alguma coisa"></textarea></div>
+    <button class="ib" id="mic" aria-label="Falar">🎤</button>
+    <button class="envio" id="enviar" disabled aria-label="Enviar">↑</button>
+  </footer>
+</div>
+
+<div id="menu" hidden>
+  <div id="menuFundo"></div>
+  <aside id="side">
+    <input class="lupa" id="busca" placeholder="Pesquisar conversas" autocomplete="off">
+    <button class="botaoAzul" id="novaSide">✎ Chat</button>
+    <button class="nav" data-vista="imagens">🖼️ Imagens</button>
+    <button class="nav" data-vista="biblio">📚 Biblioteca</button>
+    <button class="nav" id="navPers">⚙️ Personalizar</button>
+    <button class="nav" disabled>📁 Projetos (em breve)</button>
+    <button class="nav" data-vista="explorar">✦ Explorar</button>
+    <div class="rotulo">Recentes</div>
+    <div id="recentes"></div>
+    <div class="rodapeSide"><div class="avatar">VC</div><span>Você</span></div>
+  </aside>
+</div>
+
+<div id="conf" class="modal" hidden>
+  <div class="caixa">
+    <h2>Personalizar</h2>
+    <label>Chave da Groq
+      <input id="chave" type="password" autocomplete="off" placeholder="gsk_…">
+    </label>
+    <label>Modelo
+      <input id="modelo" type="text" value="openai/gpt-oss-20b">
+    </label>
+    <label class="linha"><input id="vozOn" type="checkbox"> Responder em voz</label>
+    <p class="aviso">Sua chave fica só neste celular. Você pega a chave grátis em console.groq.com.</p>
+    <div class="linhaBotoes">
+      <button class="btn perigo" id="limparTudo">Apagar conversas e imagens</button>
+      <button class="btn sec" id="fecharConf">Fechar</button>
+      <button class="btn" id="salvarConf">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// FUNCOES-INICIO
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function md(t){let h=esc(t);h=h.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');return h.split('\n').map(l=>l.replace(/^\s*[-*] /,'• ')).join('<br>');}
+function textoParaVoz(t){return String(t).replace(/\[([^\]]+)\]\([^)]+\)/g,'$1').replace(/```[\s\S]*?```/g,' ').replace(/https?:\/\/\S+/g,'').replace(/[*_`#>]+/g,'').replace(/\s+/g,' ').trim().slice(0,1500);}
+function semAcento(t){return String(t).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();}
+const RE_IMG=/\b(gera\w*|cria\w*|desenh\w*|faz\w*|faca)\b.{0,40}\b(imagem|imagens|foto|desenho|ilustracao|arte|quadro)\b|^\s*(imagem|foto|desenho) (de|do|da)\b/;
+const RE_PESQ=/\b(pesquis\w*|busc\w*|procur\w*|quem e\b|o que e\b|quando foi|onde fica)\b/;
+function querImagem(t){return RE_IMG.test(semAcento(t));}
+function precisaPesquisar(t){return RE_PESQ.test(semAcento(t));}
+function urlImagem(prompt,seed){return 'https://image.pollinations.ai/prompt/'+encodeURIComponent(prompt)+'?width=1024&height=1024&nologo=true&model=flux&seed='+(seed||Math.floor(Math.random()*1000000));}
+function tituloDe(t){const s=String(t).replace(/\s+/g,' ').trim();return s.length>42?s.slice(0,42)+'…':s;}
+function precisaNoticias(t){return /\b(noticias?|hoje|agora|ultimas?|atualizacoes?|aconteceu|cotacao|placar)\b/.test(semAcento(t));}
+function urlBusca(termo){return PROXY_URL+'busca?q='+encodeURIComponent(termo);}
+async function buscarNoticias(termo,f){
+  f=f||fetch;
+  try{const r=await f(urlBusca(termo));if(!r.ok)return [];const j=await r.json();return Array.isArray(j.resultados)?j.resultados:[];}catch(e){return [];}
+}
+function extrairDelta(linha){linha=String(linha).trim();if(!linha.startsWith('data:'))return null;const c=linha.slice(5).trim();if(!c||c==='[DONE]')return null;try{const d=JSON.parse(c);return(d.choices&&d.choices[0]&&d.choices[0].delta&&d.choices[0].delta.content)||null;}catch(e){return null;}}
+async function pesquisarWiki(termo){
+  try{
+    const r=await fetch('https://pt.wikipedia.org/w/api.php?action=query&list=search&srlimit=1&format=json&origin=*&srsearch='+encodeURIComponent(termo));
+    const j=await r.json(); const t=j.query.search[0]; if(!t)return '';
+    const r2=await fetch('https://pt.wikipedia.org/w/api.php?action=query&prop=extracts&exintro=1&explaintext=1&redirects=1&format=json&origin=*&titles='+encodeURIComponent(t.title));
+    const j2=await r2.json(); const p=Object.values(j2.query.pages)[0];
+    if(!p||!p.extract)return '';
+    return 'Wikipédia, '+p.title+': '+p.extract+' (https://pt.wikipedia.org/wiki/'+encodeURIComponent(p.title.replace(/ /g,'_'))+')';
+  }catch(e){return '';}
+}
+// Endereço do intermediário seguro (Cloudflare Worker). Troque pela URL que o Cloudflare mostrar.
+// Enquanto estiver com 'SEU-WORKER', o app usa a chave que você colocar em Personalizar.
+const PROXY_URL='https://SEU-WORKER.SEU-USUARIO.workers.dev/';
+function proxyAtivo(){return PROXY_URL.indexOf('SEU-WORKER')<0;}
+const KCONV='jarvis_conversas', KGAL='jarvis_galeria', KCFG='jarvis_cfg';
+function lerJSON(k,p){try{const v=JSON.parse(localStorage.getItem(k));return v==null?p:v;}catch(e){return p;}}
+function gravarJSON(k,v){localStorage.setItem(k,JSON.stringify(v));}
+function cfgCarregar(){return lerJSON(KCFG,{});}
+function cfgSalvar(c){gravarJSON(KCFG,c);}
+function listarConversas(){return lerJSON(KCONV,[]).slice().sort((a,b)=>b.atualizada-a.atualizada);}
+function salvarConversa(c){c.atualizada=Date.now();const l=lerJSON(KCONV,[]).filter(x=>x.id!==c.id);l.push(c);gravarJSON(KCONV,l.slice(-100));}
+function apagarConversa(id){gravarJSON(KCONV,lerJSON(KCONV,[]).filter(x=>x.id!==id));}
+function novaConversaObj(){return {id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),titulo:'Nova conversa',criada:Date.now(),atualizada:Date.now(),mensagens:[]};}
+function listarGaleria(){return lerJSON(KGAL,[]);}
+function addGaleria(item){const g=lerJSON(KGAL,[]);g.unshift(item);gravarJSON(KGAL,g.slice(0,60));}
+const SISTEMA='Você é o J.A.R.V.I.S. no celular: educado, prestativo e direto, e trata o usuário por "senhor". Responda com clareza e sem enrolação. Você conversa, pesquisa e gera imagens. Não controla computador nem casa. Quando usar informações de pesquisa, cite a fonte. Se não souber, diga.';
+const PROMPT_IMG='You write prompts for an AI image generator. Turn the user request (in any language) into ONE detailed English prompt of at most 60 words, describing subject, setting, style, lighting, composition, colors and quality. Output only the prompt, with no quotes and no explanations.';
+function streamGroq(msgs,signal){
+  return (async function*(){
+    const cfg=cfgCarregar();
+    const headers={'Content-Type':'application/json'};
+    let url='https://api.groq.com/openai/v1/chat/completions';
+    if(proxyAtivo()){url=PROXY_URL;}
+    else{
+      if(!cfg.chave)throw new Error('Coloque sua chave da Groq em Personalizar (menu ☰).');
+      headers['Authorization']='Bearer '+cfg.chave;
+    }
+    const r=await fetch(url,{signal,method:'POST',headers,body:JSON.stringify({model:cfg.modelo||'openai/gpt-oss-20b',messages:msgs,stream:true,temperature:0.5,max_completion_tokens:900})});
+    if(!r.ok)throw new Error(r.status===401?'Chave da Groq inválida. Confira em Personalizar.':'A Groq respondeu com erro '+r.status+'. Tente de novo.');
+    const leitor=r.body.getReader(); const dec=new TextDecoder(); let buf='';
+    while(true){
+      const {done,value}=await leitor.read(); if(done)break;
+      buf+=dec.decode(value,{stream:true}); let i;
+      while((i=buf.indexOf('\n'))>=0){const linha=buf.slice(0,i);buf=buf.slice(i+1);const p=extrairDelta(linha);if(p)yield p;}
+    }
+  })();
+}
+async function criarPromptImagem(pedido){
+  if(!proxyAtivo()&&!cfgCarregar().chave)return pedido;
+  try{let acc='';for await(const p of streamGroq([{role:'system',content:PROMPT_IMG},{role:'user',content:pedido}]))acc+=p;acc=acc.trim().replace(/^["']+|["']+$/g,'');return acc||pedido;}catch(e){return pedido;}
+}
+// FUNCOES-FIM
+
+const $=id=>document.getElementById(id);
+const chat=$('chat'), txt=$('txt'), enviar=$('enviar');
+const SUGESTOES=['Gera uma imagem de um gato azul','Quem foi Santos Dumont?','Me explica o que é fotossíntese','Ideias de renda extra online'];
+let conv=null, ocupado=false, controle=null;
+
+async function copiarTexto(t){
+  try{if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(t);return true;}}catch(e){}
+  try{const ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();const ok=document.execCommand('copy');ta.remove();return ok;}catch(e){return false;}
+}
+async function compartilhar(conteudo,eImagem){
+  try{if(navigator.share){await navigator.share(eImagem?{title:'JARVIS',url:conteudo}:{title:'JARVIS',text:conteudo});return;}}catch(e){if(e&&e.name==='AbortError')return;}
+  await copiarTexto(conteudo);
+}
+function adicionarAcoes(bolha,conteudo,eImagem){
+  const a=document.createElement('div');a.className='acoes';
+  const c=document.createElement('button');c.className='chip';c.textContent='Copiar';
+  c.onclick=async()=>{const ok=await copiarTexto(conteudo);c.textContent=ok?'Copiado ✓':'Não consegui copiar';setTimeout(()=>{c.textContent='Copiar';},1500);};
+  const s=document.createElement('button');s.className='chip';s.textContent='Compartilhar';
+  s.onclick=()=>compartilhar(conteudo,eImagem);
+  a.appendChild(c);a.appendChild(s);bolha.appendChild(a);
+}
+function novaBolha(quem){const b=document.createElement('div');b.className='msg '+quem;chat.appendChild(b);rolar();return b;}
+function rolar(){chat.scrollTop=chat.scrollHeight;}
+function atualizarBotao(){
+  if(ocupado){enviar.disabled=false;enviar.textContent='■';enviar.title='Parar';}
+  else{enviar.textContent='↑';enviar.title='Enviar';enviar.disabled=txt.value.trim()==='';}
+}
+function falar(t){
+  if(!cfgCarregar().vozOn||!('speechSynthesis' in window))return;
+  const u=new SpeechSynthesisUtterance(textoParaVoz(t)); u.lang='pt-BR';
+  speechSynthesis.cancel(); speechSynthesis.speak(u);
+}
+function mostrarVazio(){
+  const v=document.createElement('div'); v.className='vazio';
+  v.innerHTML='<h2>Como posso ajudar, senhor?</h2><div class="sugs"></div>';
+  const s=v.querySelector('.sugs');
+  for(const t of SUGESTOES){const c=document.createElement('button');c.className='chip';c.textContent=t;c.onclick=()=>{txt.value=t;atualizarBotao();enviarMsg();};s.appendChild(c);}
+  chat.appendChild(v);
+}
+function renderChat(){
+  chat.innerHTML='';
+  $('tituloTopo').textContent=conv?conv.titulo:'JARVIS';
+  if(!conv||conv.mensagens.length===0){mostrarVazio();return;}
+  for(const m of conv.mensagens){
+    const b=novaBolha(m.role==='user'?'user':'jarvis');
+    if(m.role==='user'){b.textContent=m.content;}
+    else{b.innerHTML=md(m.content||'');if(m.imagem){const img=new Image();img.src=m.imagem;img.alt=m.pedido||'';b.appendChild(img);adicionarAcoes(b,m.imagem,true);}else{adicionarAcoes(b,m.content||'',false);}}
+  }
+  rolar();
+}
+function mostrarVista(v){
+  for(const id of ['vChat','vImagens','vBiblio','vExplorar']) $(id).classList.remove('ativa');
+  const alvo={chat:'vChat',imagens:'vImagens',biblio:'vBiblio',explorar:'vExplorar'}[v]||'vChat';
+  $(alvo).classList.add('ativa');
+  if(v==='chat'){renderChat();$('tituloTopo').textContent=conv?conv.titulo:'JARVIS';}
+  if(v==='imagens')renderGrade();
+  if(v==='biblio')renderBiblio();
+  if(v==='explorar')renderExplorar();
+}
+function renderGrade(){
+  const g=$('grade'); g.innerHTML=''; const itens=listarGaleria();
+  $('vazioImg').hidden=itens.length>0;
+  for(const it of itens){const f=document.createElement('figure');const img=new Image();img.src=it.url;img.alt=it.pedido||'';const c=document.createElement('figcaption');c.textContent=it.pedido||'';f.appendChild(img);f.appendChild(c);g.appendChild(f);}
+}
+function renderBiblio(){
+  const l=$('listaBiblio'); l.innerHTML=''; const termo=semAcento($('busca').value);
+  const lista=listarConversas().filter(c=>!termo||semAcento(c.titulo).includes(termo));
+  if(lista.length===0){const p=document.createElement('p');p.className='vazioImg';p.textContent='Nenhuma conversa ainda.';l.appendChild(p);return;}
+  for(const c of lista){
+    const d=document.createElement('div');d.className='item';
+    const t=document.createElement('button');t.className='t';t.innerHTML='<span>'+esc(c.titulo)+'</span><small>'+new Date(c.atualizada).toLocaleDateString('pt-BR')+'</small>';
+    t.onclick=()=>{conv=c;mostrarVista('chat');fecharMenu();};
+    const x=document.createElement('button');x.className='ib';x.textContent='🗑';x.title='Apagar';
+    x.onclick=()=>{apagarConversa(c.id);if(conv&&conv.id===c.id)conv=null;renderBiblio();renderRecentes();};
+    d.appendChild(t);d.appendChild(x);l.appendChild(d);
+  }
+}
+function renderExplorar(){
+  const l=$('listaExplorar'); l.innerHTML='';
+  const ideias=['Gera uma imagem de uma cidade futurista à noite','Quem foi Nikola Tesla?','Me ajuda a escrever um e-mail pedindo aumento','Explica a diferença entre vírus e bactéria','Gera uma imagem de um café da manhã bonito','Ideias de presente para o Dia dos Pais'];
+  for(const t of ideias){const b=document.createElement('button');b.className='item';b.style.textAlign='left';b.style.font='inherit';b.style.color='var(--txt)';b.textContent=t;b.onclick=()=>{txt.value=t;atualizarBotao();mostrarVista('chat');enviarMsg();};l.appendChild(b);}
+}
+function renderRecentes(){
+  const r=$('recentes'); r.innerHTML='';
+  for(const c of listarConversas().slice(0,8)){const b=document.createElement('button');b.className='conv';b.textContent=c.titulo;b.onclick=()=>{conv=c;mostrarVista('chat');fecharMenu();};r.appendChild(b);}
+}
+function abrirMenu(){$('menu').hidden=false;renderRecentes();}
+function fecharMenu(){$('menu').hidden=true;}
+function novaConversa(){conv=novaConversaObj();mostrarVista('chat');fecharMenu();}
+
+function gerarImagem(bolha, pedido, seed){
+  return new Promise(async resolve=>{
+    bolha.className='msg jarvis';
+    bolha.innerHTML='<div class="digitando"><span></span><span></span><span></span></div> Criando a imagem…';
+    rolar();
+    const prompt=await criarPromptImagem(pedido);
+    const url=urlImagem(prompt, seed||Math.floor(Math.random()*1000000));
+    let feito=false;
+    const falhou=()=>{
+      if(feito)return; feito=true;
+      bolha.className='msg jarvis';
+      bolha.innerHTML='';
+      bolha.textContent='Não consegui criar a imagem agora.';
+      const b=document.createElement('button');b.className='chip';b.textContent='Tentar de novo';
+      b.onclick=()=>gerarImagem(novaBolha('jarvis'), pedido);
+      const a=document.createElement('div');a.className='acoes';a.appendChild(b);bolha.appendChild(a);
+      resolve();
+    };
+    const limite=setTimeout(falhou,120000);
+    const img=new Image();
+    img.alt=pedido;
+    img.onerror=()=>{clearTimeout(limite);falhou();};
+    img.onload=()=>{
+      if(feito)return; feito=true; clearTimeout(limite);
+      bolha.innerHTML=''; bolha.appendChild(img);
+      const a=document.createElement('div');a.className='acoes';
+      const b=document.createElement('button');b.className='chip';b.textContent='Gerar outra';
+      b.onclick=()=>gerarImagem(novaBolha('jarvis'), pedido);
+      a.appendChild(b); bolha.appendChild(a); adicionarAcoes(bolha,url,true);
+      if(conv){conv.mensagens.push({role:'assistant',content:'Aqui está a imagem, senhor.',imagem:url,pedido});salvarConversa(conv);}
+      addGaleria({url,prompt,pedido,criada:Date.now()});
+      rolar(); resolve();
+    };
+    img.src=url;
+  });
+}
+
+async function enviarMsg(){
+  const t=txt.value.trim(); if(!t||ocupado)return;
+  if(!conv)conv=novaConversaObj();
+  if(conv.mensagens.length===0)conv.titulo=tituloDe(t);
+  conv.mensagens.push({role:'user',content:t});
+  salvarConversa(conv);
+  txt.value=''; txt.style.height=''; ocupado=true; controle=new AbortController(); atualizarBotao();
+  if(chat.querySelector('.vazio'))chat.innerHTML='';
+  novaBolha('user').textContent=t;
+  $('tituloTopo').textContent=conv.titulo;
+  try{
+    if(querImagem(t)){
+      await gerarImagem(novaBolha('jarvis'), t);
+    } else {
+      let sistema=SISTEMA;
+      if(precisaNoticias(t)&&proxyAtivo()){
+        const noticias=await buscarNoticias(t);
+        sistema+=noticias.length
+          ?'\n\nNotícias encontradas agora (use, cite as fontes e as datas):\n'+noticias.map(n=>'- '+n.titulo+' ('+n.fonte+(n.idade?', '+n.idade:'')+'): '+n.resumo+' — '+n.url).join('\n')
+          :'\n\nNão encontrei notícias agora; diga isso se for preciso.';
+      } else if(precisaPesquisar(t)){const ctx=await pesquisarWiki(t);sistema+=ctx?'\n\nResultado da pesquisa (cite a fonte): '+ctx:'\n\nA pesquisa não trouxe resultado agora; diga isso se for preciso.';}
+      const b=novaBolha('jarvis'); b.innerHTML='<div class="digitando"><span></span><span></span><span></span></div>';
+      const hist=conv.mensagens.filter(m=>!m.imagem).slice(-16).map(m=>({role:m.role,content:m.content||''}));
+      let acc='', parado=false;
+      try{
+        for await(const p of streamGroq([{role:'system',content:sistema}].concat(hist),controle.signal)){acc+=p;b.innerHTML=md(acc);rolar();}
+      }catch(e){if(e&&e.name==='AbortError')parado=true;else throw e;}
+      acc=acc.trim();
+      if(parado){b.innerHTML=(acc?md(acc)+'<br>':'')+'<i>(resposta interrompida)</i>';}
+      if(acc){conv.mensagens.push({role:'assistant',content:acc});salvarConversa(conv);adicionarAcoes(b,acc,false);if(!parado)falar(acc);}
+      else if(!parado){b.textContent='Não recebi resposta. Tente de novo.';}
+      else{b.textContent='Resposta interrompida.';}
+    }
+  }catch(e){novaBolha('jarvis').textContent=e.message||'Algo deu errado. Tente de novo.';}
+  ocupado=false; controle=null; atualizarBotao(); renderRecentes();
+}
+
+$('abrirMenu').onclick=abrirMenu;
+$('menuFundo').onclick=fecharMenu;
+$('novaTopo').onclick=novaConversa;
+$('novaSide').onclick=novaConversa;
+document.querySelectorAll('.nav[data-vista]').forEach(b=>b.onclick=()=>{mostrarVista(b.dataset.vista);fecharMenu();});
+$('busca').addEventListener('input',renderBiblio);
+enviar.onclick=()=>{if(ocupado){if(controle)controle.abort();}else enviarMsg();};
+txt.addEventListener('input',()=>{txt.style.height='auto';txt.style.height=Math.min(txt.scrollHeight,140)+'px';atualizarBotao();});
+txt.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();enviarMsg();}});
+
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+if(SR){const rec=new SR();rec.lang='pt-BR';rec.interimResults=false;rec.onresult=e=>{txt.value=(txt.value+' '+e.results[0][0].transcript).trim();txt.dispatchEvent(new Event('input'));};$('mic').onclick=()=>{try{rec.start();}catch(e){}};}
+else{$('mic').hidden=true;}
+
+$('navPers').onclick=()=>{const c=cfgCarregar();$('chave').value=c.chave||'';$('modelo').value=c.modelo||'openai/gpt-oss-20b';$('vozOn').checked=!!c.vozOn;$('conf').hidden=false;fecharMenu();};
+$('fecharConf').onclick=()=>{$('conf').hidden=true;};
+$('salvarConf').onclick=()=>{cfgSalvar({chave:$('chave').value.trim(),modelo:$('modelo').value.trim()||'openai/gpt-oss-20b',vozOn:$('vozOn').checked});$('conf').hidden=true;};
+$('limparTudo').onclick=()=>{if(confirm('Apagar todas as conversas e imagens salvas neste celular?')){localStorage.removeItem(KCONV);localStorage.removeItem(KGAL);conv=null;mostrarVista('chat');}};
+
+conv=null;
+renderChat();
+atualizarBotao();
+</script>
+</body>
+</html>
