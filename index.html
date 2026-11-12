@@ -1,0 +1,629 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0b12">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>JARVIS</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<script>if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js");}</script>
+<style>
+:root{--bg:#0b0b12;--side:#11111a;--card:#171726;--card2:#1f1f33;--borda:#27273f;--txt:#eef0ff;--mut:#9aa0b8;--ac1:#7c6cff;--ac2:#22d3ee;--user:linear-gradient(135deg,#7c6cff,#3b82f6)}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overflow:hidden;-webkit-font-smoothing:antialiased}
+#app{display:flex;flex-direction:column;height:100%}
+.topo{display:flex;align-items:center;gap:8px;padding:10px 14px;background:rgba(11,11,18,.88);backdrop-filter:blur(10px);border-bottom:1px solid var(--borda)}
+.marca{flex:1;text-align:center;font-weight:800;letter-spacing:4px;font-size:15px;background:linear-gradient(90deg,var(--ac2),var(--ac1));-webkit-background-clip:text;background-clip:text;color:transparent;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ib{background:transparent;border:0;color:var(--txt);width:40px;height:40px;border-radius:50%;font-size:19px;flex-shrink:0}
+.ib:hover,.ib:active{background:var(--card2)}
+#tela{flex:1;overflow-y:auto;min-height:0}
+.coluna{max-width:780px;margin:0 auto;padding:20px 16px 16px}
+.vista{display:none}
+.vista.ativa{display:block}
+#chat{display:flex;flex-direction:column;gap:20px}
+.msg{line-height:1.65;font-size:15.5px;word-wrap:break-word}
+.msg.user{align-self:flex-end;max-width:82%;background:var(--user);color:#fff;padding:11px 16px;border-radius:20px 20px 6px 20px;white-space:pre-wrap;box-shadow:0 6px 20px rgba(99,102,241,.28)}
+.msg.jarvis{max-width:100%}
+.msg.jarvis img{max-width:100%;border-radius:18px;display:block;cursor:zoom-in;box-shadow:0 12px 32px rgba(0,0,0,.5);margin-top:4px}
+.acoes{display:flex;gap:4px;margin-top:8px;flex-wrap:wrap}
+.acao{background:transparent;border:0;color:var(--mut);border-radius:10px;padding:6px 9px;font:inherit;font-size:14px;min-width:34px}
+.acao:hover,.acao:active{background:var(--card2);color:var(--txt)}
+.acao.ativo{color:var(--ac2)}
+.acao:disabled{opacity:.3}
+.acao.txt{font-size:13px}
+.vazio{text-align:center;padding:36px 4px 8px}
+.vazio h2{font-size:32px;font-weight:800;margin:0 0 6px;background:linear-gradient(90deg,var(--ac2),var(--ac1));-webkit-background-clip:text;background-clip:text;color:transparent}
+.vazio p{color:var(--mut);margin:0 0 24px;font-size:16px}
+.sugs{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sug{background:var(--card);border:1px solid var(--borda);color:var(--txt);border-radius:16px;padding:14px 15px;text-align:left;font:inherit;font-size:14px;line-height:1.45}
+.sug:hover{border-color:var(--ac1);background:var(--card2)}
+.digitando span{display:inline-block;width:7px;height:7px;margin:0 3px 0 0;border-radius:50%;background:var(--ac2);animation:p 1s infinite}
+.digitando span:nth-child(2){animation-delay:.15s}.digitando span:nth-child(3){animation-delay:.3s}
+@keyframes p{0%,100%{opacity:.2}50%{opacity:1}}
+footer{padding:8px 14px calc(12px + env(safe-area-inset-bottom,0px));background:var(--bg)}
+.barra{max-width:780px;margin:0 auto;display:flex;align-items:flex-end;gap:6px;background:var(--card);border:1px solid var(--borda);border-radius:28px;padding:7px 7px 7px 16px;transition:border-color .2s,box-shadow .2s}
+.barra:focus-within{border-color:var(--ac1);box-shadow:0 0 0 3px rgba(124,108,255,.2)}
+textarea{flex:1;background:transparent;border:0;color:var(--txt);resize:none;font:inherit;font-size:15.5px;max-height:160px;min-height:26px;outline:none;padding:7px 0}
+.envio{background:linear-gradient(135deg,var(--ac1),var(--ac2));color:#fff;border:0;width:42px;height:42px;border-radius:50%;font-size:17px;flex-shrink:0;font-weight:700}
+.envio:disabled{opacity:.28}
+.grade{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:4px 0}
+.grade figure{margin:0;background:var(--card);border:1px solid var(--borda);border-radius:16px;overflow:hidden}
+.grade img{width:100%;display:block;aspect-ratio:1/1;object-fit:cover;cursor:zoom-in}
+.grade figcaption{font-size:12px;color:var(--mut);padding:9px 10px;max-height:3.4em;overflow:hidden;line-height:1.4}
+.lista{display:flex;flex-direction:column;gap:6px}
+.item{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--borda);border-radius:14px;padding:12px 10px 12px 14px}
+.item .t{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:none;border:0;color:var(--txt);text-align:left;font:inherit;padding:0;font-size:15px}
+.item small{color:var(--mut);display:block;font-size:12px;margin-top:3px}
+.vazioLista{color:var(--mut);text-align:center;padding:40px 20px;font-size:15px;line-height:1.6}
+#menu{position:fixed;inset:0;display:flex;z-index:20}
+#menu[hidden]{display:none}
+#menuFundo{position:absolute;inset:0;background:rgba(0,0,0,.6)}
+#side{position:relative;width:min(84vw,310px);height:100%;background:var(--side);display:flex;flex-direction:column;padding:14px 10px;gap:3px;overflow-y:auto;border-right:1px solid var(--borda)}
+.lupa{background:var(--card);border:1px solid var(--borda);color:var(--txt);border-radius:12px;padding:10px 12px;font:inherit;width:100%;margin-bottom:8px}
+.botaoAzul{background:linear-gradient(135deg,var(--ac1),var(--ac2));color:#fff;border:0;border-radius:14px;padding:12px 16px;font:inherit;font-weight:700;width:100%;margin-bottom:8px}
+.nav{display:flex;align-items:center;gap:12px;background:transparent;border:0;color:var(--txt);padding:10px 12px;border-radius:12px;font:inherit;font-size:15px;text-align:left;width:100%}
+.nav:hover{background:var(--card2)}
+.nav[disabled]{color:#5d5d70}
+.rotulo{color:var(--mut);font-size:12px;padding:14px 12px 5px;letter-spacing:.5px}
+.conv{background:transparent;border:0;color:var(--txt);text-align:left;padding:9px 12px;border-radius:12px;font:inherit;font-size:14px;width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.conv:hover{background:var(--card2)}
+.rodapeSide{margin-top:auto;display:flex;align-items:center;gap:10px;padding-top:12px;border-top:1px solid var(--borda)}
+.avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--ac1),var(--ac2));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0}
+.modal,.visor{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:30}
+.modal{background:rgba(0,0,0,.66);padding:16px}
+.modal[hidden],.visor[hidden]{display:none}
+.caixa{background:var(--card);border:1px solid var(--borda);border-radius:20px;padding:22px;width:min(94vw,420px);display:flex;flex-direction:column;gap:13px}
+.caixa h2{margin:0;font-size:19px}
+.caixa label{display:flex;flex-direction:column;gap:6px;font-size:14px;color:var(--mut)}
+.caixa label.linha{flex-direction:row;align-items:center;gap:8px;color:var(--txt)}
+.caixa input[type=password],.caixa input[type=text]{background:#0e0e18;border:1px solid var(--borda);color:var(--txt);border-radius:11px;padding:11px;font:inherit;color-scheme:dark}
+.btn{background:linear-gradient(135deg,var(--ac1),var(--ac2));color:#fff;border:0;border-radius:11px;padding:10px 15px;font:inherit;font-weight:700}
+.btn.sec{background:transparent;border:1px solid var(--borda);color:var(--txt)}
+.btn.perigo{background:transparent;border:1px solid #6b2b2b;color:#ff8a8a}
+.aviso{color:var(--mut);font-size:12px;line-height:1.5;margin:0}
+.linhaBotoes{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.visor{background:rgba(5,5,10,.96);flex-direction:column;justify-content:flex-start;padding:10px}
+.vtopo{display:flex;align-items:center;gap:8px;width:100%;max-width:900px}
+.vtopo span{flex:1;color:var(--mut);font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vcorpo{flex:1;display:flex;align-items:center;justify-content:center;min-height:0;width:100%;padding:10px}
+.vcorpo img{max-width:100%;max-height:100%;border-radius:14px;box-shadow:0 20px 50px rgba(0,0,0,.6)}
+.vbotoes{display:flex;gap:8px;padding:8px}
+.pill{background:var(--card2);border:1px solid var(--borda);color:var(--ac2);border-radius:999px;padding:6px 11px;font:inherit;font-size:12px;white-space:nowrap;flex-shrink:0}
+.anexoPrev{max-width:780px;margin:0 auto 8px;display:flex;align-items:center;gap:8px;padding:0 6px}
+.anexoPrev img{width:64px;height:64px;object-fit:cover;border-radius:12px;border:1px solid var(--borda)}
+.msg.user img{max-width:100%;border-radius:14px;display:block;margin-bottom:6px;cursor:zoom-in}
+#mic.ativo{background:linear-gradient(135deg,var(--ac1),var(--ac2));color:#fff;box-shadow:0 0 0 4px rgba(34,211,238,.25)}
+#anexar{font-size:18px}
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="topo">
+    <button class="ib" id="abrirMenu" aria-label="Menu">☰</button>
+    <div class="marca" id="tituloTopo">JARVIS</div>
+    <button class="pill" id="modoPill" hidden></button>
+    <button class="ib" id="novaTopo" aria-label="Nova conversa">＋</button>
+  </header>
+  <main id="tela">
+    <div class="coluna">
+      <section class="vista ativa" id="vChat"><div id="chat"></div></section>
+      <section class="vista" id="vImagens"><div class="grade" id="grade"></div><p class="vazioLista" id="vazioImg" hidden>Ainda não criei imagens. Peça no chat, por exemplo: "gera uma imagem de um gato azul".</p></section>
+      <section class="vista" id="vBiblio"><div class="lista" id="listaBiblio"></div></section>
+      <section class="vista" id="vExplorar"><div class="lista" id="listaExplorar"></div></section>
+    </div>
+  </main>
+  <footer>
+    <div id="anexoPrev" class="anexoPrev" hidden></div>
+    <div class="barra">
+      <button class="ib" id="anexar" aria-label="Enviar foto">📎</button>
+      <input type="file" id="arquivo" accept="image/*" hidden>
+      <textarea id="txt" rows="1" placeholder="Pergunte alguma coisa"></textarea>
+      <button class="ib" id="mic" aria-label="Falar">🎤</button>
+      <button class="envio" id="enviar" disabled aria-label="Enviar">↑</button>
+    </div>
+  </footer>
+</div>
+
+<div id="menu" hidden>
+  <div id="menuFundo"></div>
+  <aside id="side">
+    <input class="lupa" id="busca" placeholder="Pesquisar conversas" autocomplete="off">
+    <button class="botaoAzul" id="novaSide">✎ Nova conversa</button>
+    <button class="nav" data-vista="imagens">🖼️ Imagens</button>
+    <button class="nav" data-vista="biblio">📚 Biblioteca</button>
+    <button class="nav" id="navPers">⚙️ Personalizar</button>
+    <button class="nav" disabled>📁 Projetos (em breve)</button>
+    <button class="nav" data-vista="explorar">✦ Explorar</button>
+    <button class="nav" data-modo="tradutor">🌐 Modo tradutor</button>
+    <button class="nav" data-modo="resumo">📝 Modo resumo</button>
+    <button class="nav" data-modo="estudo">🎓 Modo estudo</button>
+    <div class="rotulo">RECENTES</div>
+    <div id="recentes"></div>
+    <div class="rodapeSide"><div class="avatar">VC</div><span>Você</span></div>
+  </aside>
+</div>
+
+<div id="conf" class="modal" hidden>
+  <div class="caixa">
+    <h2>Personalizar</h2>
+    <label id="labelChave">Chave da Groq (só se o intermediário não estiver configurado)
+      <input id="chave" type="password" autocomplete="off" placeholder="gsk_…">
+    </label>
+    <label>Modelo
+      <input id="modelo" type="text" value="openai/gpt-oss-20b">
+    </label>
+    <label class="linha"><input id="vozOn" type="checkbox"> Responder em voz</label>
+    <label class="linha"><input id="conversaVoz" type="checkbox"> Conversa por voz (ouvir e responder sem tocar)</label>
+    <div class="linhaBotoes"><button class="btn sec" id="exportar">Exportar backup</button><button class="btn sec" id="importar">Importar backup</button></div>
+    <input type="file" id="importarArq" accept=".json,application/json" hidden>
+    <p class="aviso">Sua chave fica só neste celular.</p>
+    <div class="linhaBotoes">
+      <button class="btn perigo" id="limparTudo">Apagar conversas e imagens</button>
+      <button class="btn sec" id="fecharConf">Fechar</button>
+      <button class="btn" id="salvarConf">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<div id="visor" class="visor" hidden>
+  <div class="vtopo">
+    <button class="ib" id="visorFechar" aria-label="Fechar">✕</button>
+    <span id="visorLegenda"></span>
+  </div>
+  <div class="vcorpo"><img id="visorImg" alt=""></div>
+  <div class="vbotoes">
+    <button class="btn sec" id="visorCopiar">⧉ Copiar</button>
+    <button class="btn" id="visorCompartilhar">⤴ Compartilhar</button>
+  </div>
+</div>
+
+<script>
+// FUNCOES-INICIO
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function md(t){let h=esc(t);h=h.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');return h.split('\n').map(l=>l.replace(/^\s*[-*] /,'• ')).join('<br>');}
+function textoParaVoz(t){return String(t).replace(/\[([^\]]+)\]\([^)]+\)/g,'$1').replace(/```[\s\S]*?```/g,' ').replace(/https?:\/\/\S+/g,'').replace(/[*_`#>]+/g,'').replace(/\s+/g,' ').trim().slice(0,1500);}
+function semAcento(t){return String(t).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();}
+const RE_IMG=/\b(gera\w*|cria\w*|desenh\w*|faz\w*|faca)\b.{0,40}\b(imagem|imagens|foto|desenho|ilustracao|arte|quadro)\b|^\s*(imagem|foto|desenho) (de|do|da)\b/;
+const RE_PESQ=/\b(pesquis\w*|busc\w*|procur\w*|quem e\b|o que e\b|quando foi|onde fica)\b/;
+function querImagem(t){return RE_IMG.test(semAcento(t));}
+function precisaPesquisar(t){return RE_PESQ.test(semAcento(t));}
+function precisaNoticias(t){return /\b(noticias?|hoje|agora|ultimas?|atualizacoes?|aconteceu|cotacao|placar)\b/.test(semAcento(t));}
+function urlImagem(prompt,seed){return 'https://image.pollinations.ai/prompt/'+encodeURIComponent(prompt)+'?width=1024&height=1024&nologo=true&model=flux&seed='+(seed||Math.floor(Math.random()*1000000));}
+function tituloDe(t){const s=String(t).replace(/\s+/g,' ').trim();return s.length>42?s.slice(0,42)+'…':s;}
+function extrairDelta(linha){linha=String(linha).trim();if(!linha.startsWith('data:'))return null;const c=linha.slice(5).trim();if(!c||c==='[DONE]')return null;try{const d=JSON.parse(c);return(d.choices&&d.choices[0]&&d.choices[0].delta&&d.choices[0].delta.content)||null;}catch(e){return null;}}
+const PROXY_URL='https://SEU-WORKER.SEU-USUARIO.workers.dev/';
+function proxyAtivo(){return PROXY_URL.indexOf('SEU-WORKER')<0;}
+function urlBusca(termo){return PROXY_URL+'busca?q='+encodeURIComponent(termo);}
+async function buscarNoticias(termo,f){
+  f=f||fetch;
+  try{const r=await f(urlBusca(termo));if(!r.ok)return [];const j=await r.json();return Array.isArray(j.resultados)?j.resultados:[];}catch(e){return [];}
+}
+async function pesquisarWiki(termo){
+  try{
+    const r=await fetch('https://pt.wikipedia.org/w/api.php?action=query&list=search&srlimit=1&format=json&origin=*&srsearch='+encodeURIComponent(termo));
+    const j=await r.json(); const t=j.query.search[0]; if(!t)return '';
+    const r2=await fetch('https://pt.wikipedia.org/w/api.php?action=query&prop=extracts&exintro=1&explaintext=1&redirects=1&format=json&origin=*&titles='+encodeURIComponent(t.title));
+    const j2=await r2.json(); const p=Object.values(j2.query.pages)[0];
+    if(!p||!p.extract)return '';
+    return 'Wikipédia, '+p.title+': '+p.extract+' (https://pt.wikipedia.org/wiki/'+encodeURIComponent(p.title.replace(/ /g,'_'))+')';
+  }catch(e){return '';}
+}
+const KCONV='jarvis_conversas', KGAL='jarvis_galeria', KCFG='jarvis_cfg';
+function lerJSON(k,p){try{const v=JSON.parse(localStorage.getItem(k));return v==null?p:v;}catch(e){return p;}}
+function gravarJSON(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+function cfgCarregar(){return lerJSON(KCFG,{});}
+function cfgSalvar(c){gravarJSON(KCFG,c);}
+function listarConversas(){return lerJSON(KCONV,[]).slice().sort((a,b)=>b.atualizada-a.atualizada);}
+function salvarConversa(c){c.atualizada=Date.now();const l=lerJSON(KCONV,[]).filter(x=>x.id!==c.id);l.push(c);gravarJSON(KCONV,l.slice(-100));}
+function apagarConversa(id){gravarJSON(KCONV,lerJSON(KCONV,[]).filter(x=>x.id!==id));}
+function novaConversaObj(){return {id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),titulo:'Nova conversa',criada:Date.now(),atualizada:Date.now(),mensagens:[]};}
+function listarGaleria(){return lerJSON(KGAL,[]);}
+function addGaleria(item){const g=lerJSON(KGAL,[]);g.unshift(item);gravarJSON(KGAL,g.slice(0,30));}
+const SISTEMA='Você é o J.A.R.V.I.S. no celular: educado, prestativo e direto, e trata o usuário por "senhor". Responda com clareza, sem enrolação e com boa formatação. Você conversa, pesquisa, gera imagens e analisa fotos. Não controla computador nem casa. Quando usar informações de pesquisa, cite a fonte. Se não souber, diga.';
+const PROMPT_IMG='You write prompts for an AI image generator. Turn the user request (in any language) into ONE detailed English prompt of at most 60 words, describing subject, setting, style, lighting, composition, colors and quality. Output only the prompt, with no quotes and no explanations.';
+const VARIANTES={curta:'Responda de forma mais curta, em no máximo 3 frases.',longa:'Responda de forma mais longa e detalhada, com mais exemplos e explicações.'};
+const MODOS={
+  tradutor:{rotulo:'Tradutor',instrucao:'Traduza o texto do usuário para português. Se ele já estiver em português, traduza para inglês. Mostre só a tradução.'},
+  resumo:{rotulo:'Resumo',instrucao:'Resuma o texto colado pelo usuário em até 5 tópicos curtos, mantendo os pontos principais.'},
+  estudo:{rotulo:'Estudo',instrucao:'Explique passo a passo, com exemplos simples, e termine com uma pergunta de revisão para o usuário.'}
+};
+function aplicarModo(sistema,id){return MODOS[id]?sistema+'\n\nMODO ATUAL: '+MODOS[id].instrucao:sistema;}
+function aplicarVariante(msgs,instrucao){
+  if(!instrucao)return msgs.slice();
+  const c=msgs.slice(); const u=c.length-1;
+  if(u>=0)c[u]={...c[u],content:c[u].content+'\n\n['+instrucao+']'};
+  return c;
+}
+function textoDeCompartilhamento(p){
+  const partes=[p.text,p.url,p.title].filter(x=>x&&String(x).trim());
+  if(partes.length===0)return '';
+  return 'Resuma isto para mim:\n'+partes.map(x=>String(x).trim()).join('\n');
+}
+function montarBackup(conversas,galeria){
+  return JSON.stringify({app:'JARVIS',versao:1,criado:new Date().toISOString(),conversas,galeria},null,2);
+}
+function lerBackup(texto){
+  let d;
+  try{d=JSON.parse(texto);}catch(e){throw new Error('Esse arquivo não é um backup do JARVIS.');}
+  if(!d||!Array.isArray(d.conversas)||!Array.isArray(d.galeria))throw new Error('Esse arquivo não é um backup do JARVIS.');
+  return {conversas:d.conversas.filter(c=>c&&c.id&&Array.isArray(c.mensagens)),galeria:d.galeria.filter(g=>g&&g.url)};
+}
+function mesclarConversas(atuais,novas){
+  const mapa=new Map();
+  for(const c of [...atuais,...novas]){
+    const existe=mapa.get(c.id);
+    if(!existe||(c.atualizada||0)>(existe.atualizada||0))mapa.set(c.id,c);
+  }
+  return [...mapa.values()].sort((a,b)=>(b.atualizada||0)-(a.atualizada||0));
+}
+function streamGroq(msgs,signal){
+  return (async function*(){
+    const cfg=cfgCarregar();
+    const headers={'Content-Type':'application/json'};
+    let url='https://api.groq.com/openai/v1/chat/completions';
+    if(proxyAtivo()){url=PROXY_URL;}
+    else{
+      if(!cfg.chave)throw new Error('Configure o intermediário ou coloque sua chave em Personalizar (☰).');
+      headers['Authorization']='Bearer '+cfg.chave;
+    }
+    const r=await fetch(url,{signal,method:'POST',headers,body:JSON.stringify({model:cfg.modelo||'openai/gpt-oss-20b',messages:msgs,stream:true,temperature:0.5,max_completion_tokens:900})});
+    if(!r.ok)throw new Error(r.status===401?'Chave inválida. Confira a configuração.':'O serviço respondeu com erro '+r.status+'. Tente de novo.');
+    const leitor=r.body.getReader(); const dec=new TextDecoder(); let buf='';
+    while(true){
+      const {done,value}=await leitor.read(); if(done)break;
+      buf+=dec.decode(value,{stream:true}); let i;
+      while((i=buf.indexOf('\n'))>=0){const linha=buf.slice(0,i);buf=buf.slice(i+1);const p=extrairDelta(linha);if(p)yield p;}
+    }
+  })();
+}
+async function criarPromptImagem(pedido){
+  if(!proxyAtivo()&&!cfgCarregar().chave)return pedido;
+  try{let acc='';for await(const p of streamGroq([{role:'system',content:PROMPT_IMG},{role:'user',content:pedido}]))acc+=p;acc=acc.trim().replace(/^["']+|["']+$/g,'');return acc||pedido;}catch(e){return pedido;}
+}
+async function gerarImagemWorker(prompt,f){
+  f=f||fetch;
+  try{const r=await f(PROXY_URL+'imagem',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt})});if(!r.ok)return null;const j=await r.json();return j.url||null;}catch(e){return null;}
+}
+async function perguntarImagem(prompt,imagem,f){
+  f=f||fetch;
+  try{const r=await f(PROXY_URL+'visao',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt,imagem})});if(!r.ok)return null;const j=await r.json();return j.resposta||null;}catch(e){return null;}
+}
+// FUNCOES-FIM
+
+const $=id=>document.getElementById(id);
+const chat=$('chat'), txt=$('txt'), enviar=$('enviar');
+const SUGESTOES=['Gera uma imagem de um gato azul numa janela','Quem foi Santos Dumont?','Me explica fotossíntese como se eu tivesse 10 anos','Quais as notícias de hoje?'];
+const ESPERA='<div class="digitando"><span></span><span></span><span></span></div>';
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+const REC=SR?new SR():null;
+if(REC){REC.lang='pt-BR';REC.interimResults=false;REC.continuous=false;}
+let conv=null, ocupado=false, controle=null, anexo=null, modoAtual=null, vozLoop=false, falando=false;
+
+function novaBolha(quem){const b=document.createElement('div');b.className='msg '+quem;chat.appendChild(b);rolar();return b;}
+function rolar(){const t=$('tela');t.scrollTop=t.scrollHeight;}
+function atualizarBotao(){
+  if(ocupado){enviar.disabled=false;enviar.textContent='■';enviar.title='Parar';}
+  else{enviar.textContent='↑';enviar.title='Enviar';enviar.disabled=txt.value.trim()===''&&!anexo;}
+}
+function marcarMic(on){$('mic').classList.toggle('ativo',on);}
+function falar(t,depois){
+  const fim=()=>{falando=false;if(depois)depois();};
+  const texto=textoParaVoz(t);
+  if(!('speechSynthesis' in window)||!texto){fim();return;}
+  const u=new SpeechSynthesisUtterance(texto);u.lang='pt-BR';u.onend=fim;u.onerror=fim;
+  falando=true;speechSynthesis.cancel();speechSynthesis.speak(u);
+}
+function ouvirUma(){
+  if(!vozLoop||!REC||ocupado||falando)return;
+  try{REC.start();}catch(e){}
+  marcarMic(true);
+}
+function depoisDaFala(){if(vozLoop&&!ocupado)ouvirUma();}
+function pararVoz(){vozLoop=false;try{if(REC)REC.stop();}catch(e){}speechSynthesis.cancel();falando=false;marcarMic(false);}
+if(REC){
+  REC.onresult=e=>{const t=e.results[0][0].transcript;marcarMic(false);txt.value=t;txt.dispatchEvent(new Event('input'));enviarMsg();};
+  REC.onerror=e=>{marcarMic(false);if(e.error==='not-allowed'||e.error==='service-not-allowed'){vozLoop=false;alert('Permita o uso do microfone para ouvir sua voz.');}};
+  REC.onend=()=>{marcarMic(false);if(vozLoop&&!ocupado&&!falando)setTimeout(ouvirUma,400);};
+}
+$('mic').onclick=()=>{
+  if(!REC){alert('Seu navegador não tem reconhecimento de voz.');return;}
+  if(vozLoop){pararVoz();return;}
+  if(cfgCarregar().conversaVoz){vozLoop=true;ouvirUma();}
+  else{try{REC.start();marcarMic(true);}catch(e){}}
+};
+
+async function copiarTexto(t){
+  try{if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(t);return true;}}catch(e){}
+  try{const ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();const ok=document.execCommand('copy');ta.remove();return ok;}catch(e){return false;}
+}
+async function compartilhar(conteudo){
+  try{if(navigator.share){await navigator.share({title:'JARVIS',text:conteudo});return;}}catch(e){if(e&&e.name==='AbortError')return;}
+  await copiarTexto(conteudo);
+}
+function acao(rotulo,titulo,fn,ativo,desligado){
+  const x=document.createElement('button');x.className='acao'+(ativo?' ativo':'')+(rotulo.length>2?' txt':'');
+  x.textContent=rotulo;x.title=titulo;x.setAttribute('aria-label',titulo);
+  if(desligado)x.disabled=true;
+  x.onclick=fn;return x;
+}
+function adicionarAcoesTexto(b,idx){
+  const m=conv.mensagens[idx]; const ultima=idx===conv.mensagens.length-1;
+  const a=document.createElement('div');a.className='acoes';
+  a.appendChild(acao('👍','Gostei',()=>avaliar(idx,true),m.gostei===true,false));
+  a.appendChild(acao('👎','Não gostei',()=>avaliar(idx,false),m.gostei===false,false));
+  a.appendChild(acao('↻ Reiniciar','Gerar a resposta de novo',()=>regenerar(idx,''),false,!ultima));
+  a.appendChild(acao('✂ Mais curta','Resposta mais curta',()=>regenerar(idx,VARIANTES.curta),false,!ultima));
+  a.appendChild(acao('＋ Mais longa','Resposta mais longa',()=>regenerar(idx,VARIANTES.longa),false,!ultima));
+  a.appendChild(acao('✎ Personalizar','Pedir do seu jeito',()=>{const p=prompt('Como você quer a resposta?');if(p&&p.trim())regenerar(idx,p.trim());},false,!ultima));
+  a.appendChild(acao('⧉ Copiar','Copiar texto',()=>copiarTexto(m.content)));
+  a.appendChild(acao('⤴ Compartilhar','Compartilhar',()=>compartilhar(m.content)));
+  b.appendChild(a);
+}
+function adicionarAcoesImagem(b,url,pedido){
+  const a=document.createElement('div');a.className='acoes';
+  a.appendChild(acao('↻ Gerar outra','Gerar outra versão',()=>gerarImagem(novaBolha('jarvis'),pedido),false,false));
+  a.appendChild(acao('⧉ Copiar','Copiar imagem',()=>copiarImagem(url),false,false));
+  a.appendChild(acao('⤴ Compartilhar','Compartilhar imagem',()=>compartilharImagem(url,pedido),false,false));
+  b.appendChild(a);
+}
+function avaliar(idx,val){const m=conv.mensagens[idx];m.gostei=m.gostei===val?null:val;salvarConversa(conv);renderChat();}
+function mostrarVazio(){
+  const v=document.createElement('div');v.className='vazio';
+  v.innerHTML='<h2>Olá, senhor</h2><p>Como posso ajudar hoje?</p><div class="sugs"></div>';
+  const s=v.querySelector('.sugs');
+  for(const t of SUGESTOES){const c=document.createElement('button');c.className='sug';c.textContent=t;c.onclick=()=>{txt.value=t;atualizarBotao();enviarMsg();};s.appendChild(c);}
+  chat.appendChild(v);
+}
+function renderChat(){
+  chat.innerHTML='';
+  $('tituloTopo').textContent=conv?conv.titulo:'JARVIS';
+  if(!conv||conv.mensagens.length===0){mostrarVazio();return;}
+  conv.mensagens.forEach((m,i)=>{
+    if(m.role==='user'){bolhaUsuario(m.content,m.imagem);}
+    else if(m.imagem){const b=novaBolha('jarvis');const img=new Image();img.src=m.imagem;img.alt=m.pedido||'';img.onclick=()=>abrirVisor(m.imagem,m.pedido||'');b.appendChild(img);adicionarAcoesImagem(b,m.imagem,m.pedido||'');}
+    else{const b=novaBolha('jarvis');b.innerHTML=md(m.content||'');adicionarAcoesTexto(b,i);}
+  });
+  rolar();
+}
+function bolhaUsuario(texto,imagem){
+  const b=novaBolha('user');
+  if(imagem){const img=new Image();img.src=imagem;img.alt='Foto';img.onclick=()=>abrirVisor(imagem,'Foto');b.appendChild(img);}
+  const t=document.createElement('div');t.textContent=texto;b.appendChild(t);
+  return b;
+}
+function mostrarVista(v){
+  for(const id of ['vChat','vImagens','vBiblio','vExplorar'])$(id).classList.remove('ativa');
+  const alvo={chat:'vChat',imagens:'vImagens',biblio:'vBiblio',explorar:'vExplorar'}[v]||'vChat';
+  $(alvo).classList.add('ativa');
+  if(v==='chat')renderChat();
+  if(v==='imagens')renderGrade();
+  if(v==='biblio')renderBiblio();
+  if(v==='explorar')renderExplorar();
+}
+function renderGrade(){
+  const g=$('grade');g.innerHTML='';const itens=listarGaleria();
+  $('vazioImg').hidden=itens.length>0;
+  for(const it of itens){const f=document.createElement('figure');const img=new Image();img.src=it.url;img.alt=it.pedido||'';img.onclick=()=>abrirVisor(it.url,it.pedido||'');const c=document.createElement('figcaption');c.textContent=it.pedido||'';f.appendChild(img);f.appendChild(c);g.appendChild(f);}
+}
+function renderBiblio(){
+  const l=$('listaBiblio');l.innerHTML='';const termo=semAcento($('busca').value);
+  const lista=listarConversas().filter(c=>!termo||semAcento(c.titulo).includes(termo));
+  if(lista.length===0){const p=document.createElement('p');p.className='vazioLista';p.textContent='Nenhuma conversa ainda.';l.appendChild(p);return;}
+  for(const c of lista){
+    const d=document.createElement('div');d.className='item';
+    const t=document.createElement('button');t.className='t';t.innerHTML='<span>'+esc(c.titulo)+'</span><small>'+new Date(c.atualizada).toLocaleDateString('pt-BR')+'</small>';
+    t.onclick=()=>{conv=c;mostrarVista('chat');fecharMenu();};
+    const x=document.createElement('button');x.className='ib';x.textContent='🗑';x.title='Apagar';
+    x.onclick=()=>{apagarConversa(c.id);if(conv&&conv.id===c.id)conv=null;renderBiblio();renderRecentes();};
+    d.appendChild(t);d.appendChild(x);l.appendChild(d);
+  }
+}
+function definirModo(id){modoAtual=id;atualizarModoPill();mostrarVista('chat');fecharMenu();}
+function atualizarModoPill(){
+  const p=$('modoPill');
+  if(!modoAtual){p.hidden=true;return;}
+  p.hidden=false;p.textContent='Modo: '+MODOS[modoAtual].rotulo+' ✕';
+}
+function renderExplorar(){
+  const l=$('listaExplorar');l.innerHTML='';
+  const ideias=['Gera uma imagem de uma cidade futurista à noite','Quem foi Nikola Tesla?','Me ajuda a escrever um e-mail pedindo aumento','Explica a diferença entre vírus e bactéria','Gera uma imagem de um café da manhã bonito','Ideias de presente para o Dia dos Pais'];
+  const rot=document.createElement('div');rot.className='rotulo';rot.textContent='MODOS';l.appendChild(rot);
+  for(const [id,m] of Object.entries(MODOS)){const b=document.createElement('button');b.className='item';b.style.textAlign='left';b.style.font='inherit';b.style.color='var(--txt)';b.textContent=m.rotulo+' — '+m.instrucao.slice(0,58)+'…';b.onclick=()=>definirModo(id);l.appendChild(b);}
+  const rot2=document.createElement('div');rot2.className='rotulo';rot2.textContent='IDEIAS';l.appendChild(rot2);
+  for(const t of ideias){const b=document.createElement('button');b.className='item';b.style.textAlign='left';b.style.font='inherit';b.style.color='var(--txt)';b.textContent=t;b.onclick=()=>{txt.value=t;atualizarBotao();mostrarVista('chat');enviarMsg();};l.appendChild(b);}
+}
+function renderRecentes(){
+  const r=$('recentes');r.innerHTML='';
+  for(const c of listarConversas().slice(0,8)){const b=document.createElement('button');b.className='conv';b.textContent=c.titulo;b.onclick=()=>{conv=c;mostrarVista('chat');fecharMenu();};r.appendChild(b);}
+}
+function abrirMenu(){$('menu').hidden=false;renderRecentes();}
+function fecharMenu(){$('menu').hidden=true;}
+function novaConversa(){conv=novaConversaObj();mostrarVista('chat');fecharMenu();}
+
+function compactarImagem(dataUrl){
+  return new Promise(res=>{
+    const img=new Image();
+    img.onload=()=>{try{const max=1024;const k=Math.min(1,max/Math.max(img.width,img.height));const c=document.createElement('canvas');c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);c.getContext('2d').drawImage(img,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',0.86));}catch(e){res(dataUrl);}};
+    img.onerror=()=>res(dataUrl);
+    img.src=dataUrl;
+  });
+}
+function abrirVisor(url,legenda){$('visorImg').src=url;$('visorLegenda').textContent=legenda||'';$('visor').hidden=false;}
+async function imagemComoBlob(url){const r=await fetch(url);return r.blob();}
+async function copiarImagem(url){
+  try{const blob=await imagemComoBlob(url);await navigator.clipboard.write([new ClipboardItem({[blob.type]:blob})]);return true;}catch(e){return copiarTexto(url);}
+}
+async function compartilharImagem(url,titulo){
+  try{
+    const blob=await imagemComoBlob(url);
+    const arq=new File([blob],'jarvis.'+((blob.type.split('/')[1])||'png'),{type:blob.type});
+    if(navigator.canShare&&navigator.canShare({files:[arq]})){await navigator.share({files:[arq],title:titulo||'JARVIS'});return;}
+  }catch(e){if(e&&e.name==='AbortError')return;}
+  await copiarTexto(url);
+}
+function mostrarFalhaImagem(b,pedido){
+  b.className='msg jarvis';b.innerHTML='';b.textContent='Não consegui criar a imagem agora.';
+  const a=document.createElement('div');a.className='acoes';
+  a.appendChild(acao('↻ Tentar de novo','Tentar de novo',()=>gerarImagem(novaBolha('jarvis'),pedido),false,false));
+  b.appendChild(a);
+}
+async function gerarImagem(bolha,pedido,seed){
+  bolha.className='msg jarvis';bolha.innerHTML=ESPERA+' Criando a imagem…';rolar();
+  const prompt=await criarPromptImagem(pedido);
+  const url=proxyAtivo()?await gerarImagemWorker(prompt):urlImagem(prompt,seed);
+  if(!url){mostrarFalhaImagem(bolha,pedido);return;}
+  const img=new Image();img.alt=pedido;
+  img.onerror=()=>mostrarFalhaImagem(bolha,pedido);
+  img.onload=async()=>{
+    bolha.innerHTML='';bolha.appendChild(img);
+    img.onclick=()=>abrirVisor(url,pedido);
+    const salvo=await compactarImagem(url);
+    if(conv){conv.mensagens.push({role:'assistant',content:'',imagem:salvo,pedido});salvarConversa(conv);}
+    addGaleria({url:salvo,prompt,pedido,criada:Date.now()});
+    adicionarAcoesImagem(bolha,salvo,pedido);
+    rolar();
+  };
+  img.src=url;
+}
+async function gerarTexto(b,msgs,sistema){
+  let acc='',parado=false;
+  b.innerHTML=ESPERA;
+  try{for await(const p of streamGroq([{role:'system',content:sistema}].concat(msgs),controle.signal)){acc+=p;b.innerHTML=md(acc);rolar();}}
+  catch(e){if(e&&e.name==='AbortError')parado=true;else throw e;}
+  acc=acc.trim();
+  if(parado){b.innerHTML=(acc?md(acc)+'<br>':'')+'<i>(resposta interrompida)</i>';}
+  return {acc,parado};
+}
+async function regenerar(idx,instrucao){
+  if(ocupado||idx!==conv.mensagens.length-1)return;
+  const antigo=conv.mensagens.slice();
+  const hist=conv.mensagens.slice(0,idx).filter(m=>!m.imagem).slice(-16).map(m=>({role:m.role,content:m.content||''}));
+  if(hist.length===0||hist[hist.length-1].role!=='user')return;
+  conv.mensagens=conv.mensagens.slice(0,idx);
+  const msgs=aplicarVariante(hist,instrucao);
+  ocupado=true;controle=new AbortController();atualizarBotao();
+  renderChat();
+  const b=novaBolha('jarvis');
+  try{
+    const {acc}=await gerarTexto(b,msgs,aplicarModo(SISTEMA,modoAtual));
+    if(acc){conv.mensagens.push({role:'assistant',content:acc});salvarConversa(conv);renderChat();if(vozLoop||cfgCarregar().vozOn)falar(acc,depoisDaFala);}
+    else{conv.mensagens=antigo;renderChat();}
+  }catch(e){conv.mensagens=antigo;renderChat();}
+  ocupado=false;controle=null;atualizarBotao();
+}
+async function enviarMsg(){
+  const t=txt.value.trim();
+  if((!t&&!anexo)||ocupado)return;
+  if(!conv)conv=novaConversaObj();
+  const foto=anexo; const textoMsg=t||'O que é isso? Explique em português.';
+  if(conv.mensagens.length===0)conv.titulo=tituloDe(foto?'Foto: '+textoMsg:textoMsg);
+  conv.mensagens.push(foto?{role:'user',content:textoMsg,imagem:foto}:{role:'user',content:textoMsg});
+  salvarConversa(conv);
+  txt.value='';txt.style.height='';anexo=null;atualizarAnexo();
+  ocupado=true;controle=new AbortController();atualizarBotao();
+  if(chat.querySelector('.vazio'))chat.innerHTML='';
+  bolhaUsuario(textoMsg,foto);
+  $('tituloTopo').textContent=conv.titulo;
+  try{
+    if(foto){
+      const b=novaBolha('jarvis');b.innerHTML=ESPERA;
+      const r=proxyAtivo()?await perguntarImagem(textoMsg,foto):null;
+      if(r){conv.mensagens.push({role:'assistant',content:r});salvarConversa(conv);b.innerHTML=md(r);adicionarAcoesTexto(b,conv.mensagens.length-1);if(vozLoop||cfgCarregar().vozOn)falar(r,depoisDaFala);}
+      else{b.textContent=proxyAtivo()?'Não consegui analisar a foto agora. Tente de novo.':'Para analisar fotos, configure o intermediário (veja COMO-CONFIGURAR).';}
+    } else if(querImagem(t)){
+      await gerarImagem(novaBolha('jarvis'),t);
+    } else {
+      let sistema=aplicarModo(SISTEMA,modoAtual);
+      if(precisaNoticias(t)&&proxyAtivo()){
+        const noticias=await buscarNoticias(t);
+        sistema+=noticias.length
+          ?'\n\nNotícias encontradas agora (use, cite as fontes e as datas):\n'+noticias.map(n=>'- '+n.titulo+' ('+n.fonte+(n.idade?', '+n.idade:'')+'): '+n.resumo+' — '+n.url).join('\n')
+          :'\n\nNão encontrei notícias agora; diga isso se for preciso.';
+      } else if(precisaPesquisar(t)){const ctx=await pesquisarWiki(t);sistema+=ctx?'\n\nResultado da pesquisa (cite a fonte): '+ctx:'\n\nA pesquisa não trouxe resultado agora; diga isso se for preciso.';}
+      const b=novaBolha('jarvis');
+      const hist=conv.mensagens.filter(m=>!m.imagem).slice(-16).map(m=>({role:m.role,content:m.content||''}));
+      const {acc,parado}=await gerarTexto(b,hist,sistema);
+      if(acc){conv.mensagens.push({role:'assistant',content:acc});salvarConversa(conv);adicionarAcoesTexto(b,conv.mensagens.length-1);if(!parado&&(vozLoop||cfgCarregar().vozOn))falar(acc,depoisDaFala);}
+      else if(!parado){b.textContent='Não recebi resposta. Tente de novo.';}
+      else{b.textContent='Resposta interrompida.';}
+    }
+  }catch(e){novaBolha('jarvis').textContent=e.message||'Algo deu errado. Tente de novo.';}
+  ocupado=false;controle=null;atualizarBotao();renderRecentes();
+}
+function atualizarAnexo(){
+  const p=$('anexoPrev');p.innerHTML='';
+  if(!anexo){p.hidden=true;return;}
+  p.hidden=false;
+  const img=new Image();img.src=anexo;
+  const x=document.createElement('button');x.className='ib';x.textContent='✕';x.setAttribute('aria-label','Remover foto');
+  x.onclick=()=>{anexo=null;atualizarAnexo();atualizarBotao();};
+  p.appendChild(img);p.appendChild(x);
+}
+function lerArquivoComoDataUrl(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(f);});}
+function exportarBackup(){
+  const texto=montarBackup(listarConversas(),listarGaleria());
+  const blob=new Blob([texto],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='jarvis-backup-'+new Date().toISOString().slice(0,10)+'.json';
+  document.body.appendChild(a);a.click();a.remove();
+}
+function importarBackupArquivo(f){
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const d=lerBackup(r.result);
+      gravarJSON(KCONV,mesclarConversas(listarConversas(),d.conversas).slice(0,100));
+      const gal=listarGaleria();const urls=new Set(gal.map(g=>g.url));
+      gravarJSON(KGAL,gal.concat(d.galeria.filter(g=>!urls.has(g.url))).slice(0,30));
+      alert('Backup importado: '+d.conversas.length+' conversas e '+d.galeria.length+' imagens.');
+      renderRecentes();renderBiblio();
+    }catch(e){alert(e.message||'Não consegui importar esse arquivo.');}
+  };
+  r.readAsText(f);
+}
+
+$('abrirMenu').onclick=abrirMenu;
+$('menuFundo').onclick=fecharMenu;
+$('novaTopo').onclick=novaConversa;
+$('novaSide').onclick=novaConversa;
+$('modoPill').onclick=()=>{modoAtual=null;atualizarModoPill();};
+document.querySelectorAll('.nav[data-vista]').forEach(b=>b.onclick=()=>{mostrarVista(b.dataset.vista);fecharMenu();});
+document.querySelectorAll('.nav[data-modo]').forEach(b=>b.onclick=()=>definirModo(b.dataset.modo));
+$('busca').addEventListener('input',renderBiblio);
+enviar.onclick=()=>{if(ocupado){if(controle)controle.abort();}else enviarMsg();};
+txt.addEventListener('input',()=>{txt.style.height='auto';txt.style.height=Math.min(txt.scrollHeight,160)+'px';atualizarBotao();});
+txt.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();enviarMsg();}});
+$('anexar').onclick=()=>$('arquivo').click();
+$('arquivo').onchange=async()=>{
+  const f=$('arquivo').files[0];$('arquivo').value='';
+  if(!f)return;
+  anexo=await compactarImagem(await lerArquivoComoDataUrl(f));
+  atualizarAnexo();atualizarBotao();
+};
+$('navPers').onclick=()=>{const c=cfgCarregar();$('labelChave').hidden=proxyAtivo();$('chave').value=c.chave||'';$('modelo').value=c.modelo||'openai/gpt-oss-20b';$('vozOn').checked=!!c.vozOn;$('conversaVoz').checked=!!c.conversaVoz;$('conf').hidden=false;fecharMenu();};
+$('fecharConf').onclick=()=>{$('conf').hidden=true;};
+$('salvarConf').onclick=()=>{const antes=cfgCarregar();cfgSalvar({chave:$('chave').value.trim(),modelo:$('modelo').value.trim()||'openai/gpt-oss-20b',vozOn:$('vozOn').checked,conversaVoz:$('conversaVoz').checked});if(!$('conversaVoz').checked)pararVoz();$('conf').hidden=true;};
+$('limparTudo').onclick=()=>{if(confirm('Apagar todas as conversas e imagens salvas neste celular?')){localStorage.removeItem(KCONV);localStorage.removeItem(KGAL);conv=null;mostrarVista('chat');}};
+$('exportar').onclick=exportarBackup;
+$('importar').onclick=()=>$('importarArq').click();
+$('importarArq').onchange=()=>{const f=$('importarArq').files[0];$('importarArq').value='';if(f)importarBackupArquivo(f);};
+$('visorFechar').onclick=()=>{$('visor').hidden=true;};
+$('visorCopiar').onclick=()=>copiarImagem($('visorImg').src);
+$('visorCompartilhar').onclick=()=>compartilharImagem($('visorImg').src,$('visorLegenda').textContent);
+
+// Compartilhar com o JARVIS (a partir do menu de compartilhar do Android)
+(function(){
+  const p=new URLSearchParams(location.search);
+  const t=textoDeCompartilhamento({title:p.get('title'),text:p.get('text'),url:p.get('url')});
+  if(t){txt.value=t;txt.dispatchEvent(new Event('input'));history.replaceState(null,'',location.pathname);}
+})();
+
+conv=null;
+renderChat();
+atualizarBotao();
+</script>
+</body>
+</html>
